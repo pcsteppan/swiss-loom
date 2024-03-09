@@ -7,33 +7,13 @@
     <script src="swissgl.js"></script>
 </head>
 <body>
-    <canvas id="c" width="400" height="400"></canvas>
-    <script>
+    <canvas id="c" width="600" height="600"></canvas>
+    <!-- async script -->
+    <script type="module">
         const canvas = document.getElementById('c');
         const glsl = SwissGL(canvas);
-        
-        const treadlingTex = createTex2D(glsl.gl, {
-            size: [8, 1],
-            format: 'r8',
-            data: new Uint8Array([0,1,2,3,0,1,2,3].map(i => i*64)),
-            tag: 'treadling'
-        })
-
-        const threadingTex = createTex2D(glsl.gl, {
-            size: [8, 1],
-            format: 'r8',
-            data: new Uint8Array([1,2,4,8,1,2,4,8]),
-            tag: 'threading'
-        })
 
         const tieupTex = createTex2D(glsl.gl, {
-            size: [4, 1],
-            format: 'r8',
-            data: new Uint8Array([1+8,1+2,2+4,4+8]),
-            tag: 'tieup'
-        })
-
-        const tieupTex2 = createTex2D(glsl.gl, {
             size: [4, 4],
             format: 'r8',
             data: new Uint8Array([
@@ -46,7 +26,6 @@
             ]),
             tag: 'tieup',
             filter: 'linear',
-            // wrap: 'edge'
         })
 
         const dither = [
@@ -64,140 +43,20 @@
             wrap: 'repeat'
         })
 
-        // const 
-
+        const fpRes = fetch("/index.glsl");
+        const incRes = fetch("/inc.glsl");
+        const fp = await (await fpRes).text();
+        const inc = await (await incRes).text();
+        
         glsl.loop(({time}) => {
             glsl({
-                treadling: treadlingTex,
-                threading: threadingTex,
                 tieup: tieupTex,
-                tieup2: tieupTex2,
                 dither: ditherTex,
-                time,
-                FP: `
-
-                float t(float ti) {
-                    float a = mod(ti/4., 8000.);
-                    return (a * PI);
-                }
-
-                float flip(float x) {
-
-                    return mod(x*4., 1.);
-                    // if (x > .5) {
-                    //     return 2. * (x - .5);
-                    // }
-                    // return 2. * x;
-                }
-
-                float th(float x) {
-                    x = flip(x);
-                    float r = 2.;
-                    float a = r*x-r/2.;
-                    // float m = (x - .5) * (x - .5);
-                    float v = (a * a) + .5;
-
-                    float ab = abs(x - .5);
-                    float stime = sin(time)*5.65 + 16.;
-                    float m = sin(stime * ab);
-                    // return a;
-                    float xa = v*m;
-                    if (x > .5) {
-                        xa = .8 - xa;
-                    }
-                    return mod(xa, 1.);
-                    // x = x * 1.;
-                    // float m = (abs(.5 - x) * 2.);
-                    // return mod((m * sin(x * PI * 20.) / 2. + .5) * 2. + (sin(t(time)) * sin(t(time))), 1.);
-                }
-
-                float tr(float y) {
-                    // return mod((absy * 16., 1.);
-                    return th(y);
-                    y = y * 1.;
-                    float m = 1. - (abs(.5 - y - .5) * 2.);
-                    return mod((m * sin(y * PI * 20.) / 2.) * 2., 1.);
-                }
-
-                float dit(ivec2 st, float v) {
-                    // v += time / 10.;
-                    // v = mod(v, 1.);
-                    ivec2 iuv = ivec2(st.x % 4, st.y % 4);
-                    float d = _sample(dither, iuv).r;
-                    return d > v ? 1. : 0.;
-                }
-
-                float tie(vec2 uv) {
-                    return 1.-texture(tieup2, uv).r * 255.;
-                }
-
-                float tie(ivec2 uv) {
-                    ivec2 iuv = ivec2(uv.x % 4, uv.y % 4);
-                    return _sample(tieup2, iuv).r * 255.;
-                }
-
-                float random(vec2 st) {
-                    return fract(sin(dot(st.xy,
-                                        vec2(12.9898,78.233)))*
-                                43758.5453123);
-                }
-
-                float invertHalf(float f) {
-                    f *= 2.;
-                    return f > 1. ? 1. - f : f;
-                }
-
-                void fragment() {
-                float xPartition = 0.92;
-                float yPartition = 0.92;
-
-                vec4 yellow = vec4(1.0, 0.95, 0., 1.);
-
-                if (UV.x < xPartition && UV.y > yPartition)
-                {
-                    // THREADING
-                    vec2 tuv = vec2(UV.x, UV.y - yPartition);
-                    vec2 luv = vec2(tuv.x / xPartition, tuv.y * (1. / (1. - yPartition)));
-                    float v = step(abs(luv.y - th(luv.x)), .1);
-                    v = dit(I, v);
-                    FOut = (v) * yellow;
-                }
-                else if (UV.x > xPartition && UV.y < yPartition)
-                {
-                    // TREADLING
-                    vec2 tuv = vec2(UV.x - xPartition, UV.y);
-                    vec2 luv = vec2(tuv.x * (1. / (1. - xPartition)), tuv.y / yPartition);
-                    float v = step(abs(tr(luv.y) - luv.x), .1);
-                    v = dit(I, v);
-                    FOut = (v) * yellow;
-                }
-                else if (UV.x > xPartition && UV.y > yPartition)
-                {
-                    // TIEUP
-                    vec2 tuv = vec2(UV.x - xPartition, UV.y - yPartition);
-                    vec2 luv = vec2(tuv.x * (1. / (1. - xPartition)), tuv.y * (1. / (1. - yPartition)));
-                    float v = tie(luv);
-                    v = dit(I, v);
-                    FOut = vec4((1. - v) * .64314);
-                }
-                else
-                {
-                    // TEXTILE
-                    vec2 tuv = vec2(UV.x, UV.y / yPartition);
-                    vec2 luv = vec2(tuv.x / xPartition, tuv.y);
-
-                    float th = th(luv.x);
-                    float tr = tr(luv.y);
-                    float v = tie(vec2(th, tr));
-
-                    vec4 o = dit(I, v) == 1. 
-                        ? vec4(.7)
-                        : vec4(0.,0.,0.,1.);
-    
-                    FOut = vec4(o);
-                }
-                }
-                    `
+                time: time * 0.8,
+                FP: fp,
+                Inc: inc,
+                Blend: 's+d',
+                Aspect: 'cover'
             });
         });
     </script>
@@ -211,9 +70,7 @@
             background: #aaa;
         }
         canvas {
-            width: 600px;
-            height: 600px;
-            border: 4px solid black;
+            border: 16px solid blue;
         }
     </style>
 </body>
