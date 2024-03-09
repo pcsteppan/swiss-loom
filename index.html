@@ -36,7 +36,14 @@
         const tieupTex2 = createTex2D(glsl.gl, {
             size: [4, 4],
             format: 'r8',
-            data: new Uint8Array([1,1,0,0,0,1,1,0,0,0,1,1,1,0,0,1]),
+            data: new Uint8Array([
+                1,1,0,0,//0,0,
+                0,1,1,0,//0,0,
+                0,0,1,1,//0,0,
+                1,0,0,1,//1,0,
+                // 0,0,0,0,1,1,
+                // 1,0,0,0,0,1
+            ]),
             tag: 'tieup',
             filter: 'linear',
             // wrap: 'edge'
@@ -74,13 +81,39 @@
                     return (a * PI);
                 }
 
+                float flip(float x) {
+
+                    return mod(x*4., 1.);
+                    // if (x > .5) {
+                    //     return 2. * (x - .5);
+                    // }
+                    // return 2. * x;
+                }
+
                 float th(float x) {
-                    x = x * 1.;
-                    float m = (abs(.5 - x) * 2.);
-                    return mod((m * sin(x * PI * 20.) / 2. + .5) * 2. + (sin(t(time)) * sin(t(time))), 1.);
+                    x = flip(x);
+                    float r = 2.;
+                    float a = r*x-r/2.;
+                    // float m = (x - .5) * (x - .5);
+                    float v = (a * a) + .5;
+
+                    float ab = abs(x - .5);
+                    float stime = sin(time)*5.65 + 16.;
+                    float m = sin(stime * ab);
+                    // return a;
+                    float xa = v*m;
+                    if (x > .5) {
+                        xa = .8 - xa;
+                    }
+                    return mod(xa, 1.);
+                    // x = x * 1.;
+                    // float m = (abs(.5 - x) * 2.);
+                    // return mod((m * sin(x * PI * 20.) / 2. + .5) * 2. + (sin(t(time)) * sin(t(time))), 1.);
                 }
 
                 float tr(float y) {
+                    // return mod((absy * 16., 1.);
+                    return th(y);
                     y = y * 1.;
                     float m = 1. - (abs(.5 - y - .5) * 2.);
                     return mod((m * sin(y * PI * 20.) / 2.) * 2., 1.);
@@ -95,7 +128,7 @@
                 }
 
                 float tie(vec2 uv) {
-                    return texture(tieup2, uv).r * 255.;
+                    return 1.-texture(tieup2, uv).r * 255.;
                 }
 
                 float tie(ivec2 uv) {
