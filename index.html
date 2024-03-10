@@ -13,7 +13,7 @@
         const canvas = document.getElementById('c');
         const glsl = SwissGL(canvas);
 
-        const tieupTex = createTex2D(glsl.gl, {
+        const tieupTex = new TextureTarget(glsl.gl, {
             size: [4, 4],
             format: 'r8',
             data: new Uint8Array([
@@ -35,7 +35,7 @@
             [15, 7, 13, 5]
         ];
 
-        const ditherTex = createTex2D(glsl.gl, {
+        const ditherTex = new TextureTarget(glsl.gl, {
             size: [4, 4],
             format: 'r8',
             data: new Uint8Array(dither.flat().map(i => i*16)),
@@ -47,8 +47,11 @@
         const incRes = fetch("/inc.glsl");
         const fp = await (await fpRes).text();
         const inc = await (await incRes).text();
+
+        window.devicePixelRatio = 1;
         
         glsl.loop(({time}) => {
+            glsl.adjustCanvas();
             glsl({
                 tieup: tieupTex,
                 dither: ditherTex,
@@ -56,21 +59,21 @@
                 FP: fp,
                 Inc: inc,
                 Blend: 's+d',
-                Aspect: 'cover'
+                Aspect: 'fit'
             });
         });
     </script>
     <style>
-        body {
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background: #aaa;
+        body, html {
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden;
         }
-        canvas {
-            border: 16px solid blue;
+        #c {
+            width:100vw; 
+            height: 100vh;
+            border: 16px solid black;
+            box-sizing: border-box;
         }
     </style>
 </body>
