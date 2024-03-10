@@ -28,7 +28,7 @@ if(UV.x < xPartition && UV.y > yPartition) {
 	v += hash(
 			ivec3(
 				I, 
-				(time/10. * float(I.y)/200.) * 6.
+				(time/10. * float(I.y)/120.) * 6.
 			)
 		).r * .18;
 	
