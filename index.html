@@ -43,8 +43,8 @@
             wrap: 'repeat'
         })
 
-        const fpRes = fetch("/index.glsl");
-        const incRes = fetch("/inc.glsl");
+        const fpRes = fetch("./index.glsl");
+        const incRes = fetch("./inc.glsl");
         const fp = await (await fpRes).text();
         const inc = await (await incRes).text();
 
